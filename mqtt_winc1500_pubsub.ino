@@ -64,14 +64,14 @@ Adafruit_WINC1500 WiFi(WINC_CS, WINC_IRQ, WINC_RST);
 //Adafruit_WINC1500 WiFi;
 
 
-char ssid[] = "INFINITUM0004";     //  your network SSID (name)
-char pass[] = "BaoJxbvrDc";    // your network password (use for WPA, or use as key for WEP)
+char ssid[] = "";     //  your network SSID (name)
+char pass[] = "";    // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;                // your network key Index number (needed only for WEP)
 
 int status = WL_IDLE_STATUS;
 
 // Update these with values suitable for your network.
-const char* mqtt_server = "159.203.162.152";
+const char* mqtt_server = "";
 
 // Initialize the WIFI client library
 // with the IP address and port of the server
@@ -162,7 +162,7 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect("arduinoClientWinc1500", "josleugim", "secret")) {
+    if (client.connect("arduinoClientWinc1500", "", "")) {
       Serial.println("connected");
       // Once connected, publish an announcement...
       //client.publish("outTopic", "hello world");
