@@ -41,8 +41,8 @@
 //   https://www.arduino.cc/en/Reference/SPI
 
 /************ LAMP & SWITCH PINS *********/
-#define LAMP_ONE       10 // input pin  
-#define SWITCH_ONE     9 // output pin
+#define LAMP_ONE       9 // input pin  
+#define SWITCH_ONE     10 // output pin
 #define LAMP_TWO       6 // input pin
 #define SWITCH_TWO     5 // output pin
 #define LAMP_THREE     2 // input for the switch
@@ -84,10 +84,10 @@ char msg[50];
 int value = 0;
 
 void setup() {
-#ifdef WINC_EN
+/*#ifdef WINC_EN
   pinMode(WINC_EN, OUTPUT);
   digitalWrite(WINC_EN, HIGH);
-#endif
+#endif*/
   Serial.begin(9600);
   // define the pin modes
   pinMode(LAMP_ONE, INPUT);
@@ -140,10 +140,17 @@ void setup() {
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("\nMessage arrived [");
   Serial.print(topic);
-  Serial.print("] ");
+  Serial.print("]\n");
   char *value = (char*)payload;
-  Serial.print(value);
-  ChangeLamp2Status(atoi(value));
+  Serial.println(value);
+  String strTopic = topic;
+  // change the lamp status according to the broker message
+  if(strTopic == "josleugim/groundfloor/frontyard/lamp1") {
+    ChangeLamp1Status(atoi(value));
+  }
+  if(strTopic == "josleugim/groundfloor/frontyard/lamp2") {
+    ChangeLamp2Status(atoi(value));
+  }
   /*for (int i = 0; i < length; i++) {
     Serial.print((char)payload[i]);
   }*/
@@ -160,7 +167,9 @@ void reconnect() {
       // Once connected, publish an announcement...
       //client.publish("outTopic", "hello world");
       // ... and resubscribe
-      client.subscribe("josleugim/protoboard/lamp2");
+      // suscribe to the corresponding topics
+      client.subscribe("josleugim/groundfloor/frontyard/lamp2");
+      client.subscribe("josleugim/groundfloor/frontyard/lamp1");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -178,20 +187,33 @@ void loop() {
   client.loop();
 
   // publish the status of the lamp to the broker
-  publishLampStatus(digitalRead(LAMP_TWO));
+  publishLamp1Status(digitalRead(LAMP_ONE));
+  publishLamp2Status(digitalRead(LAMP_TWO));
 }
 
-void publishLampStatus(int lampState) {
+void publishLamp1Status(int lampState) {
+  if((lampState == LOW) && (lastLampOneState != lampState)) {
+    client.publish("josleugim/groundfloor/frontyard/lamp1state","0");
+    lastLampOneState = LOW;
+  }
+  if((lampState == HIGH) && (lastLampOneState != lampState)) {
+    client.publish("josleugim/groundfloor/frontyard/lamp1state","1");
+    lastLampOneState = HIGH;
+  }
+}
+
+void publishLamp2Status(int lampState) {
   if((lampState == LOW) && (lastLampTwoState != lampState)) {
-    client.publish("josleugim/protoboard/lampstate","0");
+    client.publish("josleugim/groundfloor/frontyard/lamp2state","0");
     lastLampTwoState = LOW;
   }
   if((lampState == HIGH) && (lastLampTwoState != lampState)) {
-    client.publish("josleugim/protoboard/lampstate","1");
+    client.publish("josleugim/groundfloor/frontyard/lamp2state","1");
     lastLampTwoState = HIGH;
   }
 }
 
+// change the lamp status according to the broker
 void ChangeLamp2Status(int switchState) {
   if((digitalRead(LAMP_TWO) == LOW) && (switchState == HIGH)) {
       if(lastSwitchTwoState == HIGH) {
@@ -201,7 +223,7 @@ void ChangeLamp2Status(int switchState) {
         digitalWrite(SWITCH_TWO, HIGH);
         lastSwitchTwoState = HIGH;
       }
-      client.publish("josleugim/protoboard/lampstate","1");
+      client.publish("josleugim/groundfloor/frontyard/lamp2state","1");
     }
     if((digitalRead(LAMP_TWO) == HIGH) && (switchState == LOW)) {
       if(lastSwitchTwoState == HIGH) {
@@ -211,9 +233,37 @@ void ChangeLamp2Status(int switchState) {
         digitalWrite(SWITCH_TWO, HIGH);
         lastSwitchTwoState = HIGH;
       }
-      client.publish("josleugim/protoboard/lampstate","0");
+      client.publish("josleugim/groundfloor/frontyard/lamp2state","0");
     }
 }
+
+
+// change the lamp status according to the broker
+void ChangeLamp1Status(int switchState) {
+  Serial.print("\nReceiving message from the broker");
+  
+  if((digitalRead(LAMP_ONE) == LOW) && (switchState == HIGH)) {
+      if(lastSwitchOneState == HIGH) {
+        digitalWrite(SWITCH_ONE, LOW);
+        lastSwitchOneState = LOW;
+      } else {
+        digitalWrite(SWITCH_ONE, HIGH);
+        lastSwitchOneState = HIGH;
+      }
+      client.publish("josleugim/groundfloor/frontyard/lamp1state","1");
+    }
+    if((digitalRead(LAMP_ONE) == HIGH) && (switchState == LOW)) {
+      if(lastSwitchOneState == HIGH) {
+        digitalWrite(SWITCH_ONE, LOW);
+        lastSwitchOneState = LOW;
+      } else {
+        digitalWrite(SWITCH_ONE, HIGH);
+        lastSwitchOneState = HIGH;
+      }
+      client.publish("josleugim/groundfloor/frontyard/lamp1state","0");
+    }
+}
+
 void printWifiStatus() {
   // print the SSID of the network you're attached to:
   Serial.print("SSID: ");
